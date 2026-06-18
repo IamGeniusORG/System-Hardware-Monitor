@@ -1,4 +1,11 @@
+# Flask is required to run the local web server that hosts the interactive dashboard
 Flask==3.0.0
+
+# psutil is the core engine required to accurately measure CPU, RAM, Disk, and Network speeds natively across Windows, Mac, and Linux
 psutil==5.9.6
+
+# GPUtil is required to measure NVIDIA GPU temperatures and core utilization (Gracefully ignored on Apple Silicon or AMD systems)
 GPUtil==1.4.0
+
+# py-cpuinfo is required to fetch the exact physical name of your processor (e.g., "Intel Core i9" or "AMD Ryzen 7")
 py-cpuinfo==9.0.0
