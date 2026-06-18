@@ -1,1 +1,57 @@
-# System-Hardware-Monitor
+# ⬢ Quantum Monitor
+
+![Quantum Monitor Banner](Tests/Testing.png)
+
+A lightweight, futuristic, cross-platform hardware resource monitor. This dashboard dynamically tracks your system's CPU, RAM, Storage I/O, Network Latency, Top Processes, and GPU utilization in real-time without dragging down system performance.
+
+## 🚀 Features
+- **Universal Cross-Platform Engine:** Runs seamlessly on Windows, macOS (including Apple Silicon), and Linux.
+- **Task Manager AI:** Groups background processes intelligently by exact memory usage (MB), perfectly mimicking native task managers.
+- **Universal GPU Detection:** Gracefully falls back to OS-native APIs (`lspci`, `system_profiler`) if an NVIDIA driver isn't found.
+- **Smart Analytics:** Tracks exact internet latency (TCP ping), active system uptime, and battery states.
+- **One-Click Export:** Download your entire real-time monitoring session to a CSV file instantly for game benchmarking or troubleshooting.
+- **Dynamic Theming:** Switch instantly between sleek "Frosted Light Mode" and "Cyberpunk Dark Mode".
+
+---
+
+## 🛠️ Installation & Setup
+
+This monitor requires **Python 3.8+** to be installed on your system.
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/IamGeniusORG/System-Hardware-Monitor.git
+cd System-Hardware-Monitor
+```
+
+### 2. Install Dependencies
+It's highly recommended to use a virtual environment, but you can also install the dependencies globally.
+
+**For Windows:**
+```bash
+pip install -r requirements.txt
+```
+
+**For macOS / Linux:**
+```bash
+pip3 install -r requirements.txt
+```
+
+*(Note for Linux users: Depending on your distribution, you may need to ensure `pciutils` is installed if you want integrated GPU detection, which is usually pre-installed on modern distros).*
+
+### 3. Launch the Monitor
+Once dependencies are installed, start the backend server:
+
+**For Windows:**
+```bash
+python app.py
+```
+
+**For macOS / Linux:**
+```bash
+python3 app.py
+```
+
+### 4. Open the Dashboard
+The server will start running locally on your machine. Open your favorite web browser and navigate to:
+**👉 http://127.0.0.1:5000**
