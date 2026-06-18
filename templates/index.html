@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Monitor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="dark-theme">
+    <div class="app-container">
+        <!-- Floating neon background elements -->
+        <div class="neon-orb orb-1"></div>
+        <div class="neon-orb orb-2"></div>
+        <div class="neon-orb orb-3"></div>
+
+        <header class="top-nav">
+            <div class="brand">
+                <span class="logo-icon">⬢</span>
+                <h1>QUANTUM <span>MONITOR</span></h1>
+            </div>
+            
+            <!-- Controls added here -->
+            <div class="nav-controls">
+                <button id="theme-toggle" class="btn">☀️ LIGHT</button>
+                <button id="export-csv" class="btn btn-primary">⬇️ EXPORT LOG</button>
+            </div>
+
+            <div class="sys-summary">
+                <span id="uptime-val" class="badge">Uptime: 00:00:00</span>
+                <span id="batt-val" class="badge" style="display:none;">Battery: 100% ⚡</span>
+                <span id="os-name" class="badge">Loading OS...</span>
+                <span class="live-dot">● LIVE</span>
+            </div>
+        </header>
+
+        <div class="dashboard-grid">
+            <!-- Left Column: CPU & RAM -->
+            <div class="col left-col">
+                <div class="hud-panel" id="cpu-panel">
+                    <div class="panel-header">
+                        <h2>CPU</h2>
+                        <span id="cpu-name" class="sub-text limit-lines">Scanning...</span>
+                    </div>
+                    <div class="gauge-container">
+                        <canvas id="cpuGauge"></canvas>
+                        <div class="gauge-center">
+                            <span id="cpu-val">0</span><span class="unit">%</span>
+                        </div>
+                    </div>
+                    <div class="panel-footer">
+                        Cores: <span id="cpu-cores">0</span> / Threads: <span id="cpu-threads">0</span>
+                    </div>
+                </div>
+
+                <div class="hud-panel" id="ram-panel">
+                    <div class="panel-header">
+                        <h2>MEMORY</h2>
+                        <span id="ram-total" class="sub-text">Scanning...</span>
+                    </div>
+                    <div class="gauge-container">
+                        <canvas id="ramGauge"></canvas>
+                        <div class="gauge-center">
+                            <span id="ram-val">0</span><span class="unit">%</span>
+                        </div>
+                    </div>
+                    <div class="panel-footer">
+                        Used: <span id="ram-used">0</span> GB
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Column: GPU & Main Visuals -->
+            <div class="col center-col">
+                <div class="hud-panel main-hud" id="gpu-panel">
+                    <div class="panel-header center">
+                        <h2 id="gpu-name" class="glow-text">NO GPU DETECTED</h2>
+                        <span class="sub-text">PRIMARY ACCELERATOR</span>
+                    </div>
+                    
+                    <div class="gpu-hero-stats">
+                        <div class="hero-stat">
+                            <div class="label">TEMP</div>
+                            <div class="value"><span id="gpu-temp">0</span><span class="unit">°C</span></div>
+                        </div>
+                        <div class="hero-stat">
+                            <div class="label">CUDA CORE</div>
+                            <div class="value"><span id="gpu-load">0</span><span class="unit">%</span></div>
+                        </div>
+                        <div class="hero-stat">
+                            <div class="label">VRAM</div>
+                            <div class="value"><span id="gpu-mem">0</span><span class="unit">%</span></div>
+                            <div class="sub-text" style="margin-top:0.3rem;"><span id="gpu-mem-mb">0</span>MB / <span id="gpu-mem-total">0</span>MB</div>
+                        </div>
+                    </div>
+
+                    <div class="main-chart-wrapper">
+                        <canvas id="mainGpuChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Disk, Network, Top Apps -->
+            <div class="col right-col">
+                
+                <div class="hud-panel compact">
+                    <div class="panel-header">
+                        <h2>NETWORK & PING</h2>
+                    </div>
+                    <div class="io-stats">
+                        <div class="io-row">
+                            <span class="io-label">DOWN</span>
+                            <span id="net-recv" class="io-val highlight-green">0 Mbps</span>
+                        </div>
+                        <div class="io-row">
+                            <span class="io-label">UP</span>
+                            <span id="net-sent" class="io-val highlight-orange">0 Mbps</span>
+                        </div>
+                        <div class="io-row">
+                            <span class="io-label">LATENCY</span>
+                            <span id="net-ping" class="io-val highlight-blue">0 ms</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hud-panel compact">
+                    <div class="panel-header">
+                        <h2>STORAGE I/O</h2>
+                        <div id="disk-list" class="sub-text limit-lines" style="margin-top:0.3rem;">Scanning...</div>
+                    </div>
+                    <div class="io-stats">
+                        <div class="io-row">
+                            <span class="io-label">READ</span>
+                            <span id="disk-read" class="io-val highlight-blue">0 MB/s</span>
+                        </div>
+                        <div class="io-row">
+                            <span class="io-label">WRITE</span>
+                            <span id="disk-write" class="io-val highlight-purple">0 MB/s</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Apps -->
+                <div class="hud-panel flex-grow">
+                    <div class="panel-header">
+                        <h2>TOP PROCESSES</h2>
+                        <span class="sub-text">BY MEMORY USAGE</span>
+                    </div>
+                    <div class="process-list" id="process-list">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Audio -->
+    <audio id="alert-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
