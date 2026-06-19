@@ -82,14 +82,14 @@
                     <div class="gpu-hero-stats">
                         <div class="hero-stat">
                             <div class="label">TEMP</div>
-                            <div class="value"><span id="gpu-temp">0</span><span class="unit">°C</span></div>
+                            <div class="value"><span id="gpu-temp">0</span><span class="unit" id="gpu-temp-unit">°C</span></div>
                         </div>
                         <div class="hero-stat">
-                            <div class="label">CUDA CORE</div>
+                            <div class="label" id="gpu-core-label">CUDA CORE</div>
                             <div class="value"><span id="gpu-load">0</span><span class="unit">%</span></div>
                         </div>
                         <div class="hero-stat">
-                            <div class="label">VRAM</div>
+                            <div class="label" id="gpu-mem-label">VRAM</div>
                             <div class="value"><span id="gpu-mem">0</span><span class="unit">%</span></div>
                             <div class="sub-text" style="margin-top:0.3rem;"><span id="gpu-mem-mb">0</span>MB / <span id="gpu-mem-total">0</span>MB</div>
                         </div>

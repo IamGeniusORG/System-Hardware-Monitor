@@ -92,18 +92,37 @@ def get_system_specs():
         cpu_threads = psutil.cpu_count(logical=True) or 0
         ram_total = round(psutil.virtual_memory().total / (1024**3), 2)
         os_name = get_os_info()
+        sys_os = platform.system()
         
+        def get_base_dev(device):
+            import re
+            if device.startswith('/dev/disk'):
+                return re.sub(r's\d+.*$', '', device)
+            if device.startswith('/dev/sd') or device.startswith('/dev/vd'):
+                return re.sub(r'\d+$', '', device)
+            if device.startswith('/dev/nvme'):
+                return re.sub(r'p\d+$', '', device)
+            return device
+
         disks = []
+        seen_base_devices = set()
+        
         for part in psutil.disk_partitions(all=False):
             if 'cdrom' in part.opts or part.fstype == '':
                 continue
             if part.device.startswith('/dev/loop') or part.fstype in ('tmpfs', 'devtmpfs', 'squashfs'):
                 continue
+            
+            base_dev = get_base_dev(part.device)
+            if base_dev in seen_base_devices:
+                continue
+                
             try:
                 usage = psutil.disk_usage(part.mountpoint)
                 total_gb = round(usage.total / (1024**3), 2)
                 used_gb = round(usage.used / (1024**3), 2)
                 if total_gb > 0:
+                    seen_base_devices.add(base_dev)
                     disks.append({
                         'device': part.device,
                         'mountpoint': part.mountpoint,
@@ -172,15 +191,25 @@ def hardware_monitor_thread():
     """Background thread to poll hardware accurately."""
     global current_stats
     
-    last_disk = psutil.disk_io_counters()
+    last_disk = None
     last_net = psutil.net_io_counters()
     last_time = time.time()
     
     # Initialize CPU for processes
     for p in psutil.process_iter(['cpu_percent']): pass
     
+    # Prime the non-blocking CPU percent
+    psutil.cpu_percent(interval=None)
+    
+    sys_os = platform.system()
+    
     while True:
-        cpu_percent = psutil.cpu_percent(interval=1.0)
+        # Sleep exactly 1 second to gather average usage smoothly
+        time.sleep(1.0)
+        
+        # interval=None calculates CPU over the exact time elapsed since last call,
+        # which is extremely accurate and avoids micro-spikes on Apple Silicon.
+        cpu_percent = psutil.cpu_percent(interval=None)
         current_time = time.time()
         dt = current_time - last_time
         
@@ -188,10 +217,20 @@ def hardware_monitor_thread():
         ram = psutil.virtual_memory()
         
         # Disk IO
-        disk = psutil.disk_io_counters()
-        disk_r_sec = max(0, (disk.read_bytes - last_disk.read_bytes) / dt) if disk and last_disk else 0
-        disk_w_sec = max(0, (disk.write_bytes - last_disk.write_bytes) / dt) if disk and last_disk else 0
-        last_disk = disk
+        disk_counters = psutil.disk_io_counters(perdisk=True)
+        if disk_counters:
+            r_bytes = sum(d.read_bytes for d in disk_counters.values())
+            w_bytes = sum(d.write_bytes for d in disk_counters.values())
+            if last_disk is None:
+                disk_r_sec = 0
+                disk_w_sec = 0
+            else:
+                disk_r_sec = max(0, (r_bytes - last_disk['read_bytes']) / dt)
+                disk_w_sec = max(0, (w_bytes - last_disk['write_bytes']) / dt)
+            last_disk = {'read_bytes': r_bytes, 'write_bytes': w_bytes}
+        else:
+            disk_r_sec = 0
+            disk_w_sec = 0
         
         # Net IO
         net = psutil.net_io_counters()
@@ -217,14 +256,40 @@ def hardware_monitor_thread():
                     'mem_used': round(gpu.memoryUsed, 1),
                     'mem_total': round(gpu.memoryTotal, 1),
                     'temperature': gpu.temperature,
-                    'is_nvidia': True
+                    'is_nvidia': True,
+                    'vendor': 'nvidia'
                 })
         else:
+            fallback = get_fallback_gpu()
+            vendor = 'apple' if 'apple' in fallback.lower() else 'amd' if 'amd' in fallback.lower() or 'radeon' in fallback.lower() else 'intel' if 'intel' in fallback.lower() else 'unknown'
+            
+            g_load = 0
+            g_mem_util = 0
+            g_mem_used = 0
+            g_mem_total = 0
+            g_temp = 0
+            
+            if sys_os == 'Darwin' and vendor == 'apple':
+                try:
+                    import re
+                    out = subprocess.check_output(["ioreg", "-l", "-d", "1", "-w", "0", "-r", "-c", "AppleAGX"], text=True)
+                    match = re.search(r'"Device Utilization %"\s*=\s*(\d+)', out)
+                    if match:
+                        g_load = int(match.group(1))
+                except Exception:
+                    pass
+                
+                # Apple Silicon Unified Memory
+                g_mem_total = round(ram.total / (1024**2))
+                g_mem_used = round(ram.used / (1024**2))
+                g_mem_util = round((g_mem_used / g_mem_total) * 100, 1) if g_mem_total else 0
+            
             gpu_data.append({
                 'id': 0,
-                'name': get_fallback_gpu(),
-                'load': 0, 'mem_util': 0, 'mem_used': 0, 'mem_total': 0, 'temperature': 0,
-                'is_nvidia': False
+                'name': fallback,
+                'load': g_load, 'mem_util': g_mem_util, 'mem_used': g_mem_used, 'mem_total': g_mem_total, 'temperature': g_temp,
+                'is_nvidia': False,
+                'vendor': vendor
             })
             
         # Top Processes

@@ -179,11 +179,35 @@ async function fetchStats() {
             gMemUtil = gpu.mem_util;
 
             document.getElementById('gpu-name').innerText = gpu.name.toUpperCase();
-            document.getElementById('gpu-temp').innerText = gTemp;
             document.getElementById('gpu-load').innerText = gLoad;
             document.getElementById('gpu-mem-mb').innerText = gpu.mem_used;
             document.getElementById('gpu-mem').innerText = gMemUtil;
             document.getElementById('gpu-mem-total').innerText = gpu.mem_total;
+            
+            if (gpu.vendor === 'apple' && gTemp === 0) {
+                document.getElementById('gpu-temp').innerText = 'N/A';
+                document.getElementById('gpu-temp-unit').style.display = 'none';
+            } else {
+                document.getElementById('gpu-temp').innerText = gTemp;
+                document.getElementById('gpu-temp-unit').style.display = 'inline';
+            }
+
+            if (gpu.vendor === 'nvidia') {
+                document.getElementById('gpu-core-label').innerText = 'CUDA CORE';
+                document.getElementById('gpu-mem-label').innerText = 'VRAM';
+                gpuChart.data.datasets[0].label = 'CUDA Core %';
+                gpuChart.data.datasets[1].label = 'VRAM %';
+            } else if (gpu.vendor === 'apple') {
+                document.getElementById('gpu-core-label').innerText = 'METAL CORE';
+                document.getElementById('gpu-mem-label').innerText = 'UNIFIED MEM';
+                gpuChart.data.datasets[0].label = 'Metal Core %';
+                gpuChart.data.datasets[1].label = 'Unified Mem %';
+            } else {
+                document.getElementById('gpu-core-label').innerText = 'GPU CORE';
+                document.getElementById('gpu-mem-label').innerText = 'VRAM';
+                gpuChart.data.datasets[0].label = 'GPU Core %';
+                gpuChart.data.datasets[1].label = 'VRAM %';
+            }
 
             updateArray(gpuCoreData, gLoad);
             updateArray(gpuMemData, gMemUtil);
