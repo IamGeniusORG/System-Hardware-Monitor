@@ -104,8 +104,7 @@ def get_system_specs():
                 return re.sub(r'p\d+$', '', device)
             return device
 
-        disks = []
-        seen_base_devices = set()
+        disks_dict = {}
         
         for part in psutil.disk_partitions(all=False):
             if 'cdrom' in part.opts or part.fstype == '':
@@ -114,23 +113,23 @@ def get_system_specs():
                 continue
             
             base_dev = get_base_dev(part.device)
-            if base_dev in seen_base_devices:
-                continue
                 
             try:
                 usage = psutil.disk_usage(part.mountpoint)
                 total_gb = round(usage.total / (1024**3), 2)
                 used_gb = round(usage.used / (1024**3), 2)
                 if total_gb > 0:
-                    seen_base_devices.add(base_dev)
-                    disks.append({
-                        'device': part.device,
-                        'mountpoint': part.mountpoint,
-                        'total_gb': total_gb,
-                        'used_gb': used_gb
-                    })
+                    if base_dev not in disks_dict or used_gb > disks_dict[base_dev]['used_gb']:
+                        disks_dict[base_dev] = {
+                            'device': part.device,
+                            'mountpoint': part.mountpoint,
+                            'total_gb': total_gb,
+                            'used_gb': used_gb
+                        }
             except PermissionError:
                 continue
+
+        disks = list(disks_dict.values())
 
         system_specs = {
             'cpu': {'name': cpu_name, 'cores': cpu_cores, 'threads': cpu_threads},
@@ -276,6 +275,16 @@ def hardware_monitor_thread():
                     match = re.search(r'"Device Utilization %"\s*=\s*(\d+)', out)
                     if match:
                         g_load = int(match.group(1))
+                except Exception:
+                    pass
+                
+                try:
+                    # Fetch Apple Silicon GPU Temp (requires root privileges to query SMC on Apple Silicon)
+                    import re
+                    pm_out = subprocess.check_output(['sudo', '-n', 'powermetrics', '--samplers', 'smc', '-n', '1'], text=True, stderr=subprocess.DEVNULL)
+                    temp_match = re.search(r'GPU die temperature:\s*([\d\.]+)', pm_out)
+                    if temp_match:
+                        g_temp = round(float(temp_match.group(1)), 1)
                 except Exception:
                     pass
                 
