@@ -1,6 +1,10 @@
 # ⬢ Quantum Monitor
 
-![Quantum Monitor Banner](Tests/Testing.png)
+## 🎥 Live Demonstrations
+- **Windows (Dell G15):** [Download / Watch Video](Tests/Dell%20g15%20testing.mp4)
+- **macOS (Apple M4 Air):** [Download / Watch Video](Tests/Apple%20M4%20Air%20testing.mp4)
+
+> *Note: For Linux systems, the dashboard interface and functionality are pretty much the same as the Windows one!*
 
 A lightweight, futuristic, cross-platform hardware resource monitor. This dashboard dynamically tracks your system's CPU, RAM, Storage I/O, Network Latency, Top Processes, and GPU utilization in real-time without dragging down system performance.
 
