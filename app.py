@@ -287,21 +287,6 @@ def hardware_monitor_thread():
                         g_temp = round(float(temp_match.group(1)), 1)
                 except Exception:
                     pass
-
-                # Fallback: Since M-series CPU and GPU are on the exact same System-on-Chip (SoC), 
-                # their temperatures are practically identical. Try to read generic system/CPU sensors.
-                if g_temp == 0:
-                    try:
-                        temps = psutil.sensors_temperatures()
-                        for name, entries in temps.items():
-                            for entry in entries:
-                                if entry.current > 0:
-                                    g_temp = round(entry.current, 1)
-                                    break
-                            if g_temp > 0:
-                                break
-                    except Exception:
-                        pass
                 
                 # Apple Silicon Unified Memory
                 g_mem_total = round(ram.total / (1024**2))
