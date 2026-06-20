@@ -143,6 +143,16 @@ async function fetchSpecs() {
             totalCap += (d.total_gb || 0);
         });
         document.getElementById('disk-list').innerText = `${totalUsed.toFixed(1)} GB / ${totalCap.toFixed(1)} GB USED`;
+
+        if (specs.ram.type) {
+            document.getElementById('ram-type').innerText = specs.ram.type;
+        }
+        if (specs.ram.speed && specs.ram.speed !== '0') {
+            document.getElementById('ram-speed').innerText = specs.ram.speed + ' MHz';
+        }
+        if (specs.storage_type) {
+            document.getElementById('storage-type').innerText = specs.storage_type;
+        }
     } catch (e) {}
 }
 
@@ -161,6 +171,11 @@ async function fetchStats() {
 
         // CPU
         document.getElementById('cpu-val').innerText = Math.round(data.cpu_percent);
+        if (data.cpu_freq_mhz && data.cpu_freq_mhz !== 0) {
+            document.getElementById('cpu-freq').innerText = data.cpu_freq_mhz + ' MHz';
+        } else {
+            document.getElementById('cpu-freq').innerText = 'N/A';
+        }
         cpuChart.data.datasets[0].data = [data.cpu_percent, 100 - data.cpu_percent];
         cpuChart.update();
 
@@ -217,11 +232,24 @@ async function fetchStats() {
         // Handle Alerts
         handleAlerts(gTemp, data.ram_percent);
 
-        // I/O & Ping
-        document.getElementById('disk-read').innerText = formatBytes(data.disk.read_bytes_sec);
-        document.getElementById('disk-write').innerText = formatBytes(data.disk.write_bytes_sec);
-        document.getElementById('net-recv').innerText = formatBits(data.network.bytes_recv_sec);
-        document.getElementById('net-sent').innerText = formatBits(data.network.bytes_sent_sec);
+        // Storage I/O
+        const formatDiskSpeed = (bytes) => {
+            if (bytes < 1024) return Math.round(bytes) + ' B/s';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB/s';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB/s';
+        };
+        document.getElementById('disk-read').innerText = formatDiskSpeed(data.disk.read_bytes_sec);
+        document.getElementById('disk-write').innerText = formatDiskSpeed(data.disk.write_bytes_sec);
+
+        // Network
+        const formatNetSpeed = (bytes) => {
+            let bps = bytes * 8;
+            if (bps < 1000) return Math.round(bps) + ' bps';
+            if (bps < 1000000) return (bps / 1000).toFixed(1) + ' Kbps';
+            return (bps / 1000000).toFixed(1) + ' Mbps';
+        };
+        document.getElementById('net-recv').innerText = formatNetSpeed(data.network.bytes_recv_sec);
+        document.getElementById('net-sent').innerText = formatNetSpeed(data.network.bytes_sent_sec);
         document.getElementById('net-ping').innerText = data.network.ping_ms + ' ms';
 
         // Top Processes

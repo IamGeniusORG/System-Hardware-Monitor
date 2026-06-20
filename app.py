@@ -129,13 +129,88 @@ def get_system_specs():
             except PermissionError:
                 continue
 
+        def get_windows_ram_info():
+            ram_info = {'type': '', 'speed': ''}
+            try:
+                out = subprocess.check_output(['powershell', '-command', 'Get-CimInstance Win32_PhysicalMemory | Select-Object Speed, SMBIOSMemoryType'], text=True, creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0)
+                for line in out.strip().split('\n')[2:]:
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        s, t = parts[0], parts[1]
+                        ram_info['speed'] = s
+                        if t == '20': ram_info['type'] = 'DDR'
+                        elif t == '21': ram_info['type'] = 'DDR2'
+                        elif t == '24': ram_info['type'] = 'DDR3'
+                        elif t == '26': ram_info['type'] = 'DDR4'
+                        elif t == '34': ram_info['type'] = 'DDR5'
+                        elif t == '35': ram_info['type'] = 'LPDDR5'
+                        elif t == '30': ram_info['type'] = 'LPDDR4'
+                        break
+                return ram_info
+            except Exception:
+                return ram_info
+                
+        def get_windows_storage_type():
+            try:
+                out = subprocess.check_output(['powershell', '-command', 'Get-CimInstance Win32_DiskDrive | Select-Object Caption, InterfaceType, PNPDeviceID'], text=True, creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0)
+                types = []
+                for line in out.strip().split('\n')[2:]:
+                    if line.strip():
+                        parts = line.split()
+                        caption = " ".join(parts).upper()
+                        if any(x in caption for x in ['T700', 'T730', 'MP700', 'GEN5', 'SPATIUM M5']): types.append("PCIe Gen5 NVMe SSD")
+                        elif any(x in caption for x in ['PM9A1', 'PM9C1', '980 PRO', '990 PRO', 'SN850', 'SN770', 'P41', 'GEN4', 'KC3000', 'S70', 'MP600']): types.append("PCIe Gen4 NVMe SSD")
+                        elif any(x in caption for x in ['970 EVO', '970 PRO', 'SN750', 'SN570', 'P31', 'GEN3', 'PM981']): types.append("PCIe Gen3 NVMe SSD")
+                        elif 'NVME' in caption: types.append("NVMe SSD")
+                        elif 'SSD' in caption: types.append("SATA SSD")
+                        elif 'HDD' in caption: types.append("HDD")
+                        else:
+                            if 'SCSI' in caption and 'SAMSUNG' in caption: types.append("PCIe Gen4 NVMe SSD")
+                            else: types.append("NVMe SSD")
+                unique_types = list(set(types))
+                return " / ".join(unique_types) if unique_types else "NVMe SSD"
+            except Exception:
+                return "NVMe SSD"
+
+        def get_mac_ram_info():
+            ram_info = {'type': 'Unified', 'speed': ''}
+            try:
+                out = subprocess.check_output(['system_profiler', 'SPMemoryDataType'], text=True)
+                for line in out.split('\n'):
+                    if 'Type:' in line:
+                        ram_info['type'] = line.split(':')[1].strip()
+                    if 'Speed:' in line:
+                        ram_info['speed'] = line.split(':')[1].strip().replace('MHz', '').strip()
+            except Exception:
+                pass
+            return ram_info
+
+        def get_mac_storage_type():
+            try:
+                out = subprocess.check_output(['system_profiler', 'SPNVMeDataType'], text=True)
+                if 'APPLE SSD' in out:
+                    return "Apple NVMe SSD"
+                return "NVMe SSD"
+            except Exception:
+                return "SSD"
+
         disks = list(disks_dict.values())
+        
+        ram_info = {'type': '', 'speed': ''}
+        storage_type_str = ""
+        if sys_os == 'Windows':
+            ram_info = get_windows_ram_info()
+            storage_type_str = get_windows_storage_type()
+        elif sys_os == 'Darwin':
+            ram_info = get_mac_ram_info()
+            storage_type_str = get_mac_storage_type()
 
         system_specs = {
             'cpu': {'name': cpu_name, 'cores': cpu_cores, 'threads': cpu_threads},
-            'ram': {'total_gb': ram_total},
+            'ram': {'total_gb': ram_total, 'type': ram_info['type'], 'speed': ram_info['speed']},
             'os': os_name,
             'disks': disks,
+            'storage_type': storage_type_str,
             'fallback_gpu': get_fallback_gpu()
         }
     return system_specs
@@ -211,6 +286,20 @@ def hardware_monitor_thread():
         cpu_percent = psutil.cpu_percent(interval=None)
         current_time = time.time()
         dt = current_time - last_time
+        
+        # CPU Freq
+        freq = psutil.cpu_freq()
+        if freq:
+            cpu_freq_mhz = round(freq.max) if freq.max > 0 else round(freq.current)
+        else:
+            if sys_os == 'Darwin':
+                try:
+                    out = subprocess.check_output(['sysctl', '-n', 'hw.cpufrequency_max'], text=True).strip()
+                    cpu_freq_mhz = round(int(out) / 1000000)
+                except Exception:
+                    cpu_freq_mhz = 0
+            else:
+                cpu_freq_mhz = 0
         
         # RAM
         ram = psutil.virtual_memory()
@@ -316,6 +405,7 @@ def hardware_monitor_thread():
         current_stats = {
             'timestamp': current_time,
             'cpu_percent': cpu_percent,
+            'cpu_freq_mhz': cpu_freq_mhz,
             'ram_percent': ram.percent,
             'ram_used_gb': round(ram.used / (1024**3), 2),
             'gpus': gpu_data,

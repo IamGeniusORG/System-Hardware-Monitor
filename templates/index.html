@@ -50,7 +50,8 @@
                         </div>
                     </div>
                     <div class="panel-footer">
-                        Cores: <span id="cpu-cores">0</span> / Threads: <span id="cpu-threads">0</span>
+                        Cores: <span id="cpu-cores">0</span> / Threads: <span id="cpu-threads">0</span><br>
+                        Base Freq: <span id="cpu-freq" class="glow-text">--</span>
                     </div>
                 </div>
 
@@ -66,7 +67,8 @@
                         </div>
                     </div>
                     <div class="panel-footer">
-                        Used: <span id="ram-used">0</span> GB
+                        Used: <span id="ram-used">0</span> GB<br>
+                        <span id="ram-speed" class="glow-text"></span> <span id="ram-type" style="color: #94a3b8; font-size: 0.8rem;"></span>
                     </div>
                 </div>
             </div>
@@ -128,6 +130,7 @@
                     <div class="panel-header">
                         <h2>STORAGE I/O</h2>
                         <div id="disk-list" class="sub-text limit-lines" style="margin-top:0.3rem;">Scanning...</div>
+                        <div id="storage-type" class="sub-text limit-lines" style="color: #94a3b8; font-size: 0.8rem; margin-top:0.2rem;"></div>
                     </div>
                     <div class="io-stats">
                         <div class="io-row">
