@@ -10,6 +10,8 @@ A lightweight, futuristic, cross-platform hardware resource monitor. This dashbo
 
 ## 🚀 Features
 - **Universal Cross-Platform Engine:** Runs seamlessly on Windows, macOS (including Apple Silicon), and Linux.
+- **Deep Hardware Profiling:** Natively scans and detects hardware-level specs including RAM generation/speed (e.g., DDR5 @ 4800MHz), exact SSD NVMe PCIe generation, and true CPU Base Frequencies.
+- **Dynamic Auto-Scaling I/O:** Real-time Disk Read/Write and Network Up/Down speeds intelligently auto-scale between B/s, KB/s, and MB/s just like native OS task managers.
 - **Task Manager AI:** Groups background processes intelligently by exact memory usage (MB), perfectly mimicking native task managers.
 - **Universal GPU Detection:** Gracefully falls back to OS-native APIs (`lspci`, `system_profiler`) if an NVIDIA driver isn't found.
 - **Smart Analytics:** Tracks exact internet latency (TCP ping), active system uptime, and battery states.
